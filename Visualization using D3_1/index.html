@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="http://d3js.org/d3.v4.min.js"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>        
+        
+        <link rel="stylesheet" href="style.css">
+
+    </head>
+    <body>
+        <h2>Data table </h2>
+        <p>
+            The table displays the Rural population as (% of total population) for 20 different countries in 2016. The data was downloaded from 
+                <a href="https://data.worldbank.org/indicator/SP.RUR.TOTL.ZS">world bank website</a>
+        </p>
+        
+        <div id="area3"></div>
+        <h2> Stem leaf plot </h2>
+        <div id="area4"></div>
+        <h2>Bar Chart </h2>
+        <p>The bar chart shows the Rural population in (% of total population). The bars are labelled with (Country code, % Rural population).
+        The World Rural population value is 45%, hence the countries with rural population greater than this mean value are filled red else green.
+        </p>
+        <div id="area2"></div>
+
+        <h2>Scatter Plot </h2>
+        <p>The scatter plot shows the Rural population in (% of total population). The points are labelled with (Country code, % Rural population).
+        The World Rural population value is 45%, hence the countries with rural population greater than this mean value are filled red else green.
+        </p>
+        <div id="area1"></div>
+
+        <script>
+            var dataset;
+
+            d3.csv("rural_population.csv", function(data) {
+                dataset = data;
+                genstemleaf();
+                gentable();
+                generateViz1();
+                generateViz2();
+            });
+
+            function gentable() {
+                var columns = ["Slno", "Country_Name", "Country_Code", "Pop_2016"]
+                var disp_columns = ["Sl no", "Country Name", "Country Code", "2016 Rural population (%)"]
+                var table = d3.select('#area3').append('table')
+                var thead = table.append('thead')
+                var tbody = table.append('tbody');
+
+                // append the header row
+                thead.append('tr')
+                    .selectAll('th')
+                    .data(disp_columns)
+                    .enter()
+                    .append('th')
+                    .text(function(d) {  return d; });
+
+                // create a row for each object in the data
+                var rows = tbody.selectAll('tr')
+                                .data(dataset)
+                                .enter()
+                                .append('tr');
+
+                // create a cell in each row for each column
+                var cells = rows.selectAll('td').data(function(row) {
+                    return columns.map(function(column) {
+                        return {
+                            column: column,
+                            value: row[column]
+                        };
+                    });
+                }).enter()
+                  .append('td')
+                  .text(function(d) { console.log(d);return d.value; });
+
+            }
+            ;
+
+             // create data for leaf stem plot
+            function leafstem_data(){
+                var result = {};
+                var max = 0;
+                    // get all the values from Pop_2016 column
+                    var d1 = dataset.map(function(item){return item.Pop_2016;});
+                    // Round all values
+                    d1 = d1.map(function(i){return Math.round(parseFloat(i));});
+                    // Split each value into stem and leaf
+                    var result = {};
+                    for( i = 0; i < d1.length; i++){
+                        a = Math.floor(d1[i]/10);
+                        if( a in result){
+                            result[a].push(d1[i]%10);
+                        }
+                        else{
+                            result[a] =[d1[i]%10];
+                        }
+
+                    }
+                    return result
+            } 
+            // stem leaf plot
+            function genstemleaf(){
+                var data1 = leafstem_data();
+                var data2 =[];
+                var k = [];
+                var k1 ;
+                for (i = parseInt((Object.keys(data1))[0]); i <= parseInt((Object.keys(data1))[Object.keys(data1).length-1]); i = i+2){
+                 data1[i].sort(function(a, b) { return a > b ? 1 : -1});
+                 k = data1[i];
+                 if (i+1 <  parseInt((Object.keys(data1))[Object.keys(data1).length-1])){
+                     data1[i+1].sort(function(a, b) { return a > b ? 1 : -1});
+                      k = k.concat(data1[i+1]) };
+                k1 = k.toString().replace(/,/g,'');
+                k1 = i.toString()+" | "+k1;
+                data2.push(k1)
+                }
+
+
+                var p = d3.select("body")
+                         .select("#area4")
+                          .selectAll('p')
+                          .data(data2)
+                          .enter()
+                          .append('p')
+                          .text(function(d){return d;});
+            };
+            // Scatter plot
+            function generateViz1() {
+                var w = 1100
+                  , h = 350
+                  , pad = 4
+                  , h2 = 200;
+                var svg = d3.select('#area1')//create <svg>
+                .append('svg').attr('width', w).attr('height', h);
+                svg.selectAll('circle')//draw <circle>
+                .data(dataset).enter().append('circle').attr('cx', function(d) {
+                    return d['Slno'] * 50;
+                }).attr('cy', function(d) {
+                    return h - d['Pop_2016'] * 4;
+                }).attr('r', "4").style('fill', function(d) {
+                    if (d['Pop_2016'] > 45.7) {
+                        return 'red'
+                    } else {
+                        return 'green'
+                    }
+                });
+                
+                // Add data label (country_code,%rural population) and align them over the points
+                var text = svg.selectAll("text").data(dataset).enter().append("text").attr("x", function(d) {
+                    return (d['Slno'] * 50 - 50);
+                }).attr("y", function(d) {
+                    return h - d['Pop_2016'] * 4 - 10;
+                }).text(function(d) {
+                    return "( " + d.Country_Code + ", " + d.Pop_2016 + " )";
+                });
+            }
+
+            // Bar chart
+            function generateViz2() {
+                var w = 1000
+                  , h = 500
+                  , pad = 4;
+                var svg = d3.select('#area2')//create <svg>
+                .append('svg').attr('width', w).attr('height', h);
+                svg.selectAll('rect').data(dataset).enter().append('rect').attr('x', function(d) {
+                    return d['Slno'] * 45;
+                }).attr('y', function(d) {
+                    return h - d['Pop_2016'] * 5;
+                }).attr('width', "20").attr('height', function(d) {
+                    return d['Pop_2016'] * 5;
+                }).style('fill', function(d) {
+                    if (d['Pop_2016'] > 45.7) {
+                        return 'red'
+                    } else {
+                        return 'green'
+                    }
+                });
+                var text = svg.selectAll("text").data(dataset).enter().append("text").attr("x", function(d) {
+                    return (d['Slno'] * 45 - 40);
+                }).attr("y", function(d) {
+                    return h - d['Pop_2016'] * 5 - 10;
+                }).text(function(d) {
+                    return "( " + d.Country_Code + ", " + d.Pop_2016 + " )";
+                });
+            }
+        </script>
+    </body>
