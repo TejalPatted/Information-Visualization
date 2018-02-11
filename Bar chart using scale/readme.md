@@ -1,4 +1,4 @@
-The index.html file creates scatter plot, bar chart and slope graph for time series data. 
+This folder contains files that creates scatter plot, bar chart and slope graph using D3.js. 
 
 ## Screenshots
 The below visualizations show the electricity consumption for 10 countries in 2014 Data from UN Data website is used. [UN Data](http://data.un.org/Data.aspx?d=EDATA&f=cmID%3aEL%3btrID%3a1231)
