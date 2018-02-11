@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+
+<head>
+    <script src="http://d3js.org/d3.v4.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <script src="d3-tip.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <style>
+        .bubble {
+            fill: brown;
+            fill-opacity: .5;
+            stroke: #fff;
+            stroke-width: .5px;
+        }
+
+        .bubble :hover {
+            stroke: #000;
+        }
+
+        .legend circle {
+            fill: none;
+            stroke: black;
+        }
+
+        .legend text {
+            fill: #777;
+            font: 10px sans-serif;
+            text-anchor: middle;
+        }
+    </style>
+
+</head>
+
+<body>
+    <h2>Data</h2>
+    <p>
+        The data is downloaded from
+        <a href="https://data.worldbank.org/indicator/SP.RUR.TOTL.ZS">world bank website</a>. It consists of data of Rural
+        population as (% of total population) for 20 different countries in 2016. The maps are drawn using Topojson data
+        and Equirectangular projection to maintain equal areas.
+    </p>
+    <h2> Chloropleth Map</h2>
+    <p>The chloropleth map shows the variation in rural population percetage for 10 countried acros the world using gradients
+        of blue. As seen in the legend, darker regions represent high rural population percantage and lighter regions represent
+        lower percentage. Hovering over the countries shows up a tooltip with percentage rural population values if data
+        is present else if displays as unknown.
+    </p>
+
+    <div id="chloro"></div>
+    <h2> Proportion Symbol map</h2>
+    <p>The Proportion Symbol map shows the variation in rural population percetage for 10 countried acros the world using proportional
+        symbols of dots. Larger dots represent high rural population percantage and smaller dots represent lower percentage.
+        Hovering over the countries shows up a tooltip with percentage rural population values if data is present else if
+        displays as unknown.
+    </p>
+    <div id="prop"></div>
+
+
+    <script type="text/javascript">
+        var map_data;
+        var data;
+        var path = d3.geoPath(d3.geoEquirectangular());
+        var margin = { top: 50, left: 50, bottom: 50, right: 150 };
+        var width = 900;
+        var height = 600 - margin.top - margin.bottom;
+
+        // Create map for chloropleth map
+        var svg = d3.select("body").select("#chloro").append("svg")
+            .attr("width", 900)
+            .attr("height", height)
+            .append('g');
+
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", 10)
+            .attr("text-anchor", "middle")
+            .text("% Rural population chloropleth map")
+            .style("text-decoration", "underline")
+            .style("font-weight", "bold");
+
+
+
+        var tip = d3.tip()
+            .attr('class', 'd3-tip')
+            .offset([-10, 5])
+            .html(function (d) {
+                if (d.properties.value) {
+                    val = d.properties.value + "%";
+                }
+                else {
+                    val = "unknown";
+                }
+                return "<p> <strong>Country :</strong> <span style='color:red'>" + d.properties.name + "</span>" + 
+                "<br> <strong>Rural Population:</strong> <span style='color:red'>" + val + "</span> </p>";
+            })
+
+        // Create map for proportional symbol map
+        var svg2 = d3.select("body").select("#prop").append("svg")
+            .attr("width", 900)
+            .attr("height", height);
+
+        svg2.append("text")
+            .attr("x", width / 2)
+            .attr("y", 10)
+            .attr("text-anchor", "middle")
+            .text("% Rural population proportional symbol map")
+            .style("text-decoration", "underline")
+            .style("font-weight", "bold");
+
+
+        d3.json("https://unpkg.com/world-atlas@1/world/110m.json", function (error, world) {
+            if (error) throw error;
+            map_data = world;
+
+            d3.csv("Data1.csv", function (data1) {
+                data = data1;
+                create_chloromap();
+                create_propmap();
+            });
+        });
+
+        function create_chloromap() {
+            var color = d3.scaleQuantile()
+                .range(d3.schemeBlues[5]);
+
+            color.domain([
+                d3.min(data, function (d) { return parseInt(d["rural_pop"]); }),
+                d3.max(data, function (d) { return parseInt(d["rural_pop"]); })
+            ]);
+
+            var a = topojson.feature(map_data, map_data.objects.countries).features;
+            for (var i = 0; i < data.length; i++) {
+                for (var j = 0; j < a.length; j++) {
+                    if(a[j].id=="840"){
+                        var b = 1;
+                    }
+                    if (a[j].id == data[i]["coun_id"]){
+                        a[j].properties.value = parseInt(data[i]["rural_pop"]);
+                        a[j].properties.name = data[i]["Country"];}
+                }
+            }
+
+            svg.call(tip);
+            svg.append("g")
+                .selectAll("path")
+                .data(a)
+                .enter()
+                .append("path")
+                .attr("d", path)
+                .on('mouseover', tip.show)
+                .on('mouseout', tip.hide)
+                .style("stroke", "	#888888")
+                .style("fill", function (d) {
+                    //Get data value
+                    var value = d.properties.value;
+                    if (value) {
+                        //If value exists…
+                        return color(value);
+                    } else {
+                        //If value is undefined…
+                        return "white";
+                    }
+                });
+
+
+            // svg.append("text")
+            //     .attr("class", "country-label")
+            //     .attr("transform", function (d) { return "translate(" + path.centroid(d) + ")"; })
+            //     .text(function (d) { return 
+            //     if(d.properties.name; })
+            //     .attr("dx", function (d) {
+            //         return "0.3em";
+
+            //     })
+            //     .attr("dy", function (d) {
+            //         return "0.35em";
+            //     })
+            //     .style('fill', 'black');
+
+
+            var x = d3.scaleLinear()
+                .domain([0, 5])
+                .rangeRound([60, 80]);
+
+            var g = svg.append("g")
+                .attr("class", "key")
+                .attr("transform", "translate(550,455)");
+
+            g.selectAll("rect")
+                .data(color.range().map(function (d) {
+                    d = color.invertExtent(d);
+                    if (d[0] == null) d[0] = x.domain()[0];
+                    if (d[1] == null) d[1] = x.domain()[1];
+                    return d;
+                }))
+                .enter().append("rect")
+                .attr("height", 15)
+                .attr("x", function (d) {
+                    return x(d[0]);
+                })
+                .attr("width", function (d) {
+                    return x(d[1]) - x(d[0]);
+                })
+                .attr("fill", function (d) { return color(d[0]); });
+
+            g.append("text")
+                .attr("class", "caption")
+                .attr("x", x.range()[0])
+                .attr("y", -6)
+                .attr("fill", "#000")
+                .attr("text-anchor", "start")
+                .attr("font-weight", "bold")
+                .text("% Rural population");
+
+            g.call(d3.axisBottom(x)
+                .tickSize(20)
+                .tickValues(color.domain()));
+
+
+
+        };
+
+        function create_propmap() {
+
+            var radius = d3.scaleSqrt()
+                .domain([4, 70])
+                .range([0, 30]);
+
+            var a = topojson.feature(map_data, map_data.objects.countries).features;
+            for (var i = 0; i < data.length; i++) {
+                for (var j = 0; j < a.length; j++) {
+                    if (a[j].id == data[i]["coun_id"]){
+                        a[j].properties.value = parseInt(data[i]["rural_pop"]);
+                        a[j].properties.name = data[i]["Country"];}
+                }
+            }
+
+            svg2.call(tip);
+            svg2.append("g")
+                .selectAll("path")
+                .data(a)
+                .enter()
+                .append("path")
+                .attr("d", path)
+                .style("stroke", "white")
+                .style("fill", "#ccc")
+                .on('mouseover', tip.show)
+                .on('mouseout', tip.hide);
+
+
+            svg2.append("g")
+                .attr("class", "bubble")
+                .selectAll("circle")
+                .data(a)
+                .enter().append("circle")
+                .on('mouseover', tip.show)
+                .on('mouseout', tip.hide)
+                .attr("transform", function (d) {
+                    if (d.id == "840") {
+                        var a = 1;
+                    }
+                    return "translate(" + path.centroid(d) + ")";
+                })
+                .attr("r", function (d) {
+                    var value = d.properties.value;
+                    if (value) {
+                        //If value exists…
+                        return radius(value);
+                    } else {
+                        //If value is undefined…
+                        return 0;
+                    }
+                }
+                );
+
+
+
+
+            var legend = svg2.append("g")
+                .attr("class", "legend")
+                .attr("transform", "translate(800,455)")
+                .selectAll("g")
+                .data([20, 40, 70])
+                .enter().append("g");
+
+            legend.append("circle")
+                .attr("cy", function (d) { return -radius(d); })
+                .attr("r", radius);
+
+            legend.append("text")
+                .attr("y", function (d) { return -2 * radius(d); })
+                .attr("dy", "1.3em")
+                .text(d3.format(".1s"));
+
+            svg2.append("g").append("text")
+                .attr("class", "caption")
+                .attr("x", "750")
+                .attr("y", "390")
+                .attr("fill", "#000")
+                .attr("text-anchor", "start")
+                .text("% Rural population");
+
+
+
+        }
+    </script>
+
+</body>
+
+</html>
