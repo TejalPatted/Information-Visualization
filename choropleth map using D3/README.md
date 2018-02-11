@@ -9,10 +9,6 @@ This code creates a choropleth map and proportional symbol map to represent the 
 * I have also used a local script d3-tip.js to attach a tooltip to hover action. This file is added in the git and aludra.
 * Node.js was used along with browsersync library to create a local host environment and also facilitate auto-reload of the browser on every change in the html or css file. The command - browser-sync start --server --files ".html, css/.css" helps to track changes in the html/css files and auto-relod the browser.
 
-## Publishing Instructions
-The published page is available at http://www-scf.usc.edu/~patted/a9.html
-The html page is published on aludra. The data file and supporting .js files were uploaded using Filezilla application.
-
 ## Github details
 There are 3 files in github pertaining to this assignment.
 1. index.html - This has the html and js code that implements the visualization
