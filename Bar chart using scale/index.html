@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="http://d3js.org/d3.v4.min.js"></script>
+    <link rel="stylesheet" href="style1.css">
+</head>
+
+<body>
+    <h2>Data</h2>
+    <p> The data for the following charts corresponds to the electricity consumption by 10 different countries in Kilowatt-hours for 2006 and 2014, million units
+        . Data source is
+        <a href="http://data.un.org/Data.aspx?d=EDATA&f=cmID%3aEL%3btrID%3a1231">UN Data</a>
+    <h2>Data table </h2>
+    <div id="area1"></div>
+    <h2>Scatter Plot </h2>
+    <p>The horizontal axis represents the country code and vertical axis indicates the electricity consumption in 2014 in Kilowatt-hours, million units.</p>
+    <div id="area2"></div>
+    <h2>Bar Chart</h2>
+    <p>The horizontal axis represents the country code and vertical axis indicates the electricity consumption in 2014 in Kilowatt-hours, million units.</p>
+    <div id="area3"></div>
+    <h2> Slope Graph </h2>
+    <p> This graph represents the change in electricity consumption of 10 countries from 2006 to 2014. The values are log scaled for better visibility</p>
+    <div id ="area4"></div>
+
+    <script>
+        var dataset;
+        d3.json("Data.json", function(data){
+            dataset=data;
+            genTable(data);
+            genPlot(data);
+            genChart(data);
+            genSlope(data);
+            })
+        
+        function genTable(data){
+            var column = ["Country", "Country_Code", "Electricity_2006","Electricity_2014"]
+            var table = d3.select("#area1").append("table");
+            // append header
+            table.append('tr')            
+            .selectAll('th')
+            .data(column)
+            .enter()
+            .append('th')
+            .text(function(d){return d});
+
+           var rows =  table.selectAll('tr')
+            .data(data)
+            .enter()
+            .append('tr')
+                            // create a cell in each row for each column
+            var cells = rows.selectAll('td').data(function(row) {
+                    return column.map(function(column) {
+                        return {
+                            column: column,
+                            value: row[column]
+                        };
+                    });
+                }).enter()
+                  .append('td')
+                  .text(function(d) { return d.value; });
+        }
+
+        function genPlot(data){
+            var h = 400, w=800, padding = 100, hpad = 80;       
+            ymax = d3.max(data,function(d){return d["Electricity_2014"];});
+            xDomain = data.map(function(d){ return d["Country_Code"];});
+            var xScale = d3.scalePoint().domain(xDomain).range([padding,w-padding]);
+            var yScale= d3.scaleLinear().domain([0,ymax+100000]).range([h-hpad,hpad]);
+            var svg = d3.select("body").select("#area2")
+                        .append("svg")
+                        .attr("height",h)
+                        .attr("width",w);
+            svg.selectAll('circle')
+            .data(data)
+            .enter()
+            .append('circle')
+            .attr("cx",function(d){return xScale(d["Country_Code"]);})
+            .attr("cy",function(d){return yScale(d["Electricity_2014"]);})
+            .attr("r",4)
+            .style("fill","blue");
+
+            var xAxis = d3.axisBottom(xScale);
+            var yAxis = d3.axisLeft(yScale);
+
+            svg.append('g')
+            .attr("class","axis")
+            .attr("transform","translate(0," + (h - hpad) + ")")
+            .call(xAxis);
+
+            svg.append('g')
+            .attr("class","axis")
+            .attr("transform", "translate(" + hpad + ",0)")
+            .call(yAxis);             
+        }
+
+        function genChart(data){
+            var h = 400, w = 800, padding = 80, hpad = 80
+            var ymax = d3.max(data,function(d){return d["Electricity_2014"];});
+            xDomain = data.map(function(d){return d["Country_Code"];});
+            var xScale = d3.scaleBand().domain(xDomain).range([padding,w-padding])
+            var yScale= d3.scaleLinear().domain([0,ymax+100000]).range([h-hpad,hpad]);
+            var svg = d3.select('#area3')//create <svg>
+                .append('svg').attr('width', w).attr('height', h);
+            
+            svg.selectAll('rect').data(data).enter().append('rect')
+            .attr('x',function(d){return xScale(d["Country_Code"])+20;})
+            .attr("y",function(d){return yScale(d["Electricity_2014"]);})
+            .attr('width', "20")
+            .attr('height', function(d) {
+                    return  h - hpad - yScale(d["Electricity_2014"]);
+                })
+            .style("fill","darkblue");
+            
+            var xAxis = d3.axisBottom(xScale);
+            var yAxis = d3.axisLeft(yScale);
+
+            svg.append('g')
+            .attr("class","axis")
+            .attr("transform","translate(0," + (h - hpad) + ")")
+            .call(xAxis);
+
+            svg.append('g')
+            .attr("class","axis")
+            .attr("transform", "translate(" + hpad + ",0)")
+            .call(yAxis);
+        }
+
+        function genSlope(data){
+            var h = 600, w = 800, padding = 80, hpad = 80  
+            var ymax1 = d3.max(data,function(d){return d["Electricity_2006"];}); 
+            var ymax2 = d3.max(data,function(d){return d["Electricity_2014"];}); 
+            var yScale= d3.scaleLog().domain([20000,ymax2]).range([h-hpad,hpad]); 
+            var svg = d3.select('#area4')//create <svg>
+                .append('svg').attr('width', w).attr('height', h);
+             svg.selectAll('line')
+            .data(data)
+            .enter()
+            .append('line')
+            .attr("x1",125)
+            .attr("y1",function(d){return yScale(d["Electricity_2006"]) })
+            .attr("x2",500)
+            .attr("y2",function(d){return yScale(d["Electricity_2014"]) }) 
+            .style("stroke","black")
+            .style("stroke-width","2")  ; 
+
+            svg.selectAll('text1')
+            .data(data)
+            .enter()
+            .append('text')
+            .attr("x",520)               
+            .attr("y",function(d){return yScale(d["Electricity_2014"]) }) 
+            .text(function(d) {
+                    return "( " + d["Country_Code"] + ", " + d["Electricity_2014"] + " )";
+                }) 
+            .style("font","5em")  ;
+
+            svg.selectAll('text2')
+            .data(data)
+            .enter()
+            .append('text')
+            .attr("x",10)
+
+            .attr("y",function(d){return yScale(d["Electricity_2006"]) }) 
+            .text(function(d) {
+                    return "( " + d["Country_Code"] + ", " + d["Electricity_2006"] + " )";
+                }) 
+            .style("font","5em")  ;
+
+            var d1 =[2006,2014];
+            svg.selectAll('text3')
+            .data(d1)
+            .enter()
+            .append('text')
+            .attr("x",function(d,i){i==0?k=100:k=500; return k})
+            .attr("y", 30) 
+            .text(function(d){return d}) 
+            .style("font","5em")  ;
+
+
+        }
+
+
+
+    </script>
+
+
+
+
+</body>

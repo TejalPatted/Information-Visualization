@@ -1,0 +1,81 @@
+[
+ {
+   "Country": "France",
+   "Country_Code": "FRA",
+   "Unit": "Kilowatt-hours, million",
+   "Electricity_2006": 143327,
+   "Electricity_2014": 149426
+ },
+ {
+   "Country": "Italy",
+   "Country_Code": "ITA",
+   "Unit": "Kilowatt-hours, million",
+   "Electricity_2006": 67635,
+   "Electricity_2014": 64255
+ },
+ {
+   "Country": "China",
+   "Country_Code": "CHN",
+   "Unit": "Kilowatt-hours, million",
+   "Electricity_2006": 335158,
+   "Electricity_2014": 717610
+ },
+ {
+   "Country": "Malaysia",
+   "Country_Code": "MYS",
+   "Unit": "Kilowatt-hours, million",
+   "Electricity_2006": 17143,
+   "Electricity_2014": 27266
+ },
+ {
+   "Country": "India",
+   "Country_Code": "IND",
+   "Unit": "Kilowatt-hours, million",
+   "Electricity_2006": 111001,
+   "Electricity_2014": 217405
+ },
+ {
+   "Country": "Turkey",
+   "Country_Code": "TUR",
+   "Unit": "Kilowatt-hours, million",
+   "Electricity_2006": 34466,
+   "Electricity_2014": 46190
+ },
+ {
+   "Country": "Japan",
+   "Country_Code": "JPN",
+   "Unit": "Kilowatt-hours, million",
+   "Electricity_2006": 279594,
+   "Electricity_2014": 273938
+ },
+ {
+   "Country": "Thailand",
+   "Country_Code": "THA",
+   "Unit": "Kilowatt-hours, million",
+   "Electricity_2006": 27005,
+   "Electricity_2014": 38993
+ },
+ {
+   "Country": "United States",
+   "Country_Code": "USA",
+   "Unit": "Kilowatt-hours, million",
+   "Electricity_2006": 1351521,
+   "Electricity_2014": 1416977
+ },
+ {
+   "Country": "Mexico",
+   "Country_Code": "MEX",
+   "Unit": "Kilowatt-hours, million",
+   "Electricity_2006": 42531,
+   "Electricity_2014": 53914
+ },
+ {
+   "Country": "United Kingdom",
+   "Country_Code": "GBR",
+   "Unit": "Kilowatt-hours, million",
+   "Electricity_2006": 124704,
+   "Electricity_2014": 108881
+
+ }
+
+]
