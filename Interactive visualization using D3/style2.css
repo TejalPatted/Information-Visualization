@@ -1,0 +1,40 @@
+.divpos{
+    
+    margin: 10px 0px 10px 20px;    
+}
+.label{
+    text-anchor: middle;
+    font-size: 15px;
+}
+.legend{
+    font-size: 10px;
+    padding: 70px 0;
+    vertical-align: middle;
+}
+.leg_box{
+    vertical-align: middle;
+}
+.text_label{
+    font-family: Consolas;
+    font-size: 10px;
+    fill:white;
+    text-anchor: middle;
+    /* set anchor to middle to ease placing! */
+}
+.btn1{
+    color: white;
+    background-color: #868e96;
+    border-radius: .25rem;
+    border: 1px solid transparent;
+}
+.axis line {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+}
+
+.axis text {
+    font-family: sans-serif;
+    font-size: 11px;
+    fill: black;
+}

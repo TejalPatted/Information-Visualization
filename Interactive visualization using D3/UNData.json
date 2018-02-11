@@ -1,0 +1,52 @@
+﻿[
+ {
+   "Country": "Brazil",
+   "Country_Code": "BRA",
+   "Electricity_Consumption": 132302
+ },
+ {
+   "Country": "Canada",
+   "Country_Code": "CAN",
+   "Electricity_Consumption": 161568
+ },
+ {
+   "Country": "China",
+   "Country_Code": "CHN",
+   "Electricity_Consumption": 717610
+ },
+ {
+   "Country": "Germany",
+   "Country_Code": "DEU",
+   "Electricity_Consumption": 129600
+ },
+ {
+   "Country": "France",
+   "Country_Code": "FRA",
+   "Electricity_Consumption": 149426
+ },
+ {
+   "Country": "United Kingdom",
+   "Country_Code": "GBR",
+   "Electricity_Consumption": 108881
+ },
+ {
+   "Country": "India",
+   "Country_Code": "IND",
+   "Electricity_Consumption": 217405
+ },
+ {
+   "Country": "Japan",
+   "Country_Code": "JPN",
+   "Electricity_Consumption": 273938
+ },
+ {
+   "Country": "Saudi Arabia",
+   "Country_Code": "SAU",
+   "Electricity_Consumption": 135908
+ },
+ {
+   "Country": "United States",
+   "Country_Code": "USA",
+   "Electricity_Consumption": 1416977
+ }
+]

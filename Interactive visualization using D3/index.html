@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script src="http://d3js.org/d3.v4.min.js"></script>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"
+        crossorigin="anonymous">
+    <link rel="stylesheet" href="style2.css">
+</head>
+
+<body>
+    <h2>Data</h2>
+    <p> The data for the following charts corresponds to the electricity consumption by 10 different countries in Kilowatt-hours
+        for 2006 and 2014, million units . Data source is
+        <a href="http://data.un.org/Data.aspx?d=EDATA&f=cmID%3aEL%3btrID%3a1231">UN Data</a>
+    </p>
+    <h3>Instruction</h3>
+    <p> The data can be sorted in 3 ways by selecting each of the options mentioned against sort options. Next, we can view different 
+        subsets of data by using options provided in Data selection options.
+    </p>
+    <div role="group" class="divpos" aria-label="Basic example">
+        <label>Sort options :</label>
+        <button class="btn1" type="button" id="alpha">Alphabetically </button>
+        <button class="btn1" type="button" id="asc">Ascending </button>
+        <button class="btn1" type="button" id="desc">Descending</button>
+    </div>
+    <div class="divpos">
+        <form>
+            <label>Data selection options:</label>
+            <label class="radio-inline">
+                <input type="radio" id ="rd1" checked="checked" name="optradio">Show all data
+              </label>
+            <label class="radio-inline">
+                <input type="radio" id ="rd2" name="optradio">Show top 5
+              </label>
+            <label class="radio-inline">
+                <input type="radio" id ="rd3" name="optradio">Show bottom 5
+              </label>
+        </form>
+    </div>
+
+    <div id="area1"></div>
+
+    <script>
+        var dataset;
+        var org_data;
+        var xScale = d3.scaleBand();  //x scale
+        var yScale = d3.scaleLinear();  //y scale
+        var margin = { top: 50, left: 50, bottom: 50, right: 150 };
+        var width = 800 - margin.left - margin.right;
+        var height = 450 - margin.top - margin.bottom;
+
+        // Svg should be global within script as it will used in various methods for transition
+        var svg = d3.select("#area1").append("svg")
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
+
+        d3.json("UNData.json", function (data) {
+            dataset = data;
+            org_data = data.slice();
+            genChart();
+        })
+
+        // By default alphabetically order is chosen
+
+        d3.select("#alpha").style('background-color', "darkblue");
+
+        function genChart() {
+            var ymax = d3.max(dataset, function (d) { return d["Electricity_Consumption"]; });
+            var xDomain = dataset.map(function (d) { return d["Country_Code"]; });
+            xScale.domain(xDomain).range([margin.left, width]).padding(0.3);
+            yScale.domain([0, ymax + 100000]).range([height, 0])
+
+            svg.selectAll('rect').data(dataset).enter().append('rect')
+                .attr('x', function (d) {
+                    return xScale(d["Country_Code"]);
+                })
+                .attr("y", function (d) { return yScale(d["Electricity_Consumption"]); })
+                .attr('width', xScale.bandwidth())
+                .attr('height', function (d) {
+                    return height - yScale(d["Electricity_Consumption"]);
+                })
+                .style("fill", "darkblue")
+                .attr("class","bar");
+
+            svg.selectAll(".lab")
+                .data(dataset)
+                .enter().append("text")
+                .text(function (d) { return d["Electricity_Consumption"]; })
+                .attr('class', 'text_label')
+                .attr("x", function (d) { return xScale(d["Country_Code"]) + xScale.bandwidth() / 2; })
+                .attr("y", function (d) { return yScale(d["Electricity_Consumption"]) + 10; });
+
+            var xAxis = d3.axisBottom(xScale);
+            var yAxis = d3.axisLeft(yScale);
+
+            svg.append('g')
+                .attr("class", "x axis")
+                .attr("transform", "translate(0," + height + ")")
+                .call(xAxis);
+
+            svg.append('g')
+                .attr("class", "y axis")
+                .attr("transform", "translate(" + margin.left + ",0)")
+                .call(yAxis);
+
+            svg.append("svg:text")
+                .attr("class", "title")
+                .attr("x", (width / 2))
+                .attr("y", -10)
+                .attr("text-anchor", "middle")
+                .text("Electricity Consumption in 2014")
+                .style("text-decoration", "underline");
+
+            svg.append("text")
+                .attr("class", "label")
+                .text("Country codes")
+                .attr("x", width / 2)
+                .attr("y", height + margin.bottom * .8);
+
+
+            svg.append("text")
+                .attr("x", - width * 0.6 / 2)
+                .attr("y", - margin.left * 0.2)
+                .attr("class", "label")
+                .attr("transform", "rotate(-90)")
+                .append("tspan").text("Electricity Consumption -> ")
+                .style("baseline-shift", "super");
+
+            // add legend   
+            var legend = svg.append("g")
+                .attr("class", "legend")
+                //.attr("x", w - 65)
+                //.attr("y", 50)
+                .attr("height", 100)
+                .attr("width", 100)
+                .attr('transform', 'translate(-20,50)');
+
+            var legendRect = legend.selectAll('leg_box').data(dataset);
+
+            legendRect.enter()
+                .append("rect")
+                .attr("x", width+20)
+                .attr("width", 10)
+                .attr("height", 10)
+                .attr("y", function (d, i) {
+                    return i * 15;
+                })
+                .style("fill",'darkblue')
+                .attr("class","leg_box");
+
+            var legendText = legend.selectAll('text').data(dataset);
+
+            legendText.enter()
+                .append("text")
+                .attr("x", width +35)
+                .attr("y", function (d, i) {
+                    return (i * 15)+8;
+                })
+                .style('class','legend')
+                .attr('class','legend')
+                .text(function (d) {
+                    return d['Country_Code']+' - '+d['Country'];
+                });
+
+        }
+
+        // Handling Sorting options
+
+        // When alphabetical sort is pressed
+        d3.select("#alpha")
+            .on("click", function () {
+                unselectBtn("#alpha");
+                var temp_data = dataset;
+                dataset = temp_data.sort(
+                    function (a, b) { return a.Country_Code.localeCompare(b.Country_Code); }
+                );
+                xScale.domain(dataset.map(function (d) { return d["Country_Code"]; }));
+                transitionBars();
+            });
+        // When ascending order is pressed
+        d3.select("#asc")
+            .on("click", function () {
+                unselectBtn("#asc");
+                var temp_data = dataset;
+                dataset.sort(
+                    function (a, b) { return a["Electricity_Consumption"] - b["Electricity_Consumption"]; });
+
+                xScale.domain(dataset.map(function (d) { return d["Country_Code"]; }));
+                transitionBars();
+            });
+
+        // When descending order is pressed
+        d3.select("#desc")
+            .on("click", function () {
+                unselectBtn("#desc");
+                var temp_data = dataset;
+                dataset.sort(
+                    function (a, b) { return b["Electricity_Consumption"] - a["Electricity_Consumption"]; });
+
+                xScale.domain(dataset.map(function (d) { return d["Country_Code"]; }));
+                transitionBars();
+            });
+
+        // Change color of selected button to indicate which button is selected
+        function unselectBtn(id) {
+            d3.select("#alpha").style('background-color', '#868e96');
+            d3.select("#asc").style('background-color', "#868e96");
+            d3.select("#desc").style('background-color', "#868e96");
+            d3.select(id).style('background-color', 'darkblue');
+        }
+
+        function transitionBars() {
+            //transition bars for cases where only the scale changes (no add/remove)
+            var transition = svg.transition()
+                .duration(750);
+
+            var delay = function (d, i) {
+                return i * 50;
+            };
+
+            transition.selectAll("rect.bar")
+                .delay(delay)
+                .attr("x", function (d) {
+                    return xScale(d["Country_Code"]);
+                });
+
+            transition.selectAll(".text_label")
+                .delay(delay)
+                .attr("x", function (d) {
+                    return xScale(d["Country_Code"]) + xScale.bandwidth() / 2;
+                })
+                .attr("y", function (d) {
+                    return yScale(d["Electricity_Consumption"]) + 10;
+                });
+
+            var xAxis = d3.axisBottom(xScale);
+            d3.selectAll("g.x.axis")
+                .transition()
+                .call(xAxis);
+
+        }
+
+
+        // Handling Data Selection options --
+        var dataFlag = "#rd1";
+        d3.select("#rd1")
+            .on("click", function () {
+                if (dataFlag != "#rd1") {
+                    dataFlag = "#rd1";
+                    unselectBtn("#alpha");
+                    dataset = org_data.slice();
+                    dataSel("#rd1");
+                }
+            });
+
+        d3.select("#rd2")
+            .on("click", function () {
+                if (dataFlag != "#rd2") {
+                    dataFlag = "#rd2"
+                    unselectBtn("#desc");
+                    dataset = org_data.slice();
+                    dataset.sort(
+                        function (a, b) { return b["Electricity_Consumption"] - a["Electricity_Consumption"]; });
+                    dataset.splice(5, 5);
+                    dataSel("#rd2");
+                }
+            });
+
+        d3.select("#rd3")
+            .on("click", function () {
+                if (dataFlag != "#rd3") {
+                    dataFlag = "#rd3"
+                    unselectBtn("#asc");
+                    dataset = org_data.slice();
+                    dataset.sort(
+                        function (a, b) { return a["Electricity_Consumption"] - b["Electricity_Consumption"]; });
+                    dataset.splice(5, 5);
+                    dataSel("#rd3");
+                    //changeY();
+                }
+            });
+        function dataSel(rd) {
+            xScale.domain(dataset.map(function (d) { return d["Country_Code"]; }));
+            var buf = rd == "#rd3" ? 9500 : 20000;
+            var ymax = d3.max(dataset,function(d){return d["Electricity_Consumption"];});
+            yScale.domain([0,ymax]).range([height,0]);
+
+            var bars = svg.selectAll("rect.bar")
+                .data(dataset, function (d) { return d["Country_Code"]; });
+
+            var delay = function (d, i) { return i * 50; };
+
+            // UPDATE.
+            bars.transition()
+                .duration(750)
+                .delay(delay)
+                .attr("x", function (d) { return xScale(d["Country_Code"]); })
+                .attr("width", xScale.bandwidth())
+                .attr("y", function (d) { return yScale(d["Electricity_Consumption"]); })
+                .attr("height", function (d) { return height - yScale(d["Electricity_Consumption"]); });
+
+            // ENTER.
+            bars.enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", function (d) { return xScale(d["Country_Code"]); })
+                .attr("y", function (d) { return yScale(d["Electricity_Consumption"]); })
+                .attr("width", xScale.bandwidth())
+                .attr("height", function (d) { return height - yScale(d["Electricity_Consumption"]); })
+                .style("fill", "darkblue")
+                .attr("class","bar");
+
+            // EXIT.
+            bars.exit()
+                .transition()
+                .duration(500)
+                .remove();
+
+            var xAxis = d3.axisBottom(xScale);
+            d3.selectAll("g.x.axis")
+                .transition()
+                .call(xAxis);
+
+            var lab = svg.selectAll(".text_label")
+                .data(dataset, function (d) { return d["Country_Code"]; });
+
+            // UPDATE.    
+            lab.transition()
+                .duration(750)
+                .delay(delay)
+                .text(function (d) { return d["Electricity_Consumption"]; })
+                .attr("class", "text_label")
+                .attr("x", function (d, i) { return xScale(d["Country_Code"]) + xScale.bandwidth() / 2; })
+                .attr("y", function (d) { return yScale(d["Electricity_Consumption"]) + 10; });
+
+            // ENTER.
+            lab.enter().append("text")
+                .text(function (d) { return d["Electricity_Consumption"]; })
+                .attr("class", "text_label")
+                .attr("x", function (d) { return xScale(d["Country_Code"]) + xScale.bandwidth() / 2; })
+                .attr("y", function (d) { return yScale(d["Electricity_Consumption"]) + 10; });
+
+            // EXIT.    
+            lab.exit()
+                .transition()
+                .duration(500)
+                .remove();
+
+            // Legend rectangeles            
+            var leg = svg.select('g.legend').selectAll('rect.leg_box').data(dataset);
+
+            //UPDATE
+            leg.transition()
+            .duration(100)
+            .delay(delay)                
+            .attr("x", width+20)
+            .attr("width", 10)
+            .attr("height", 10)
+            .attr("y", function (d, i) {
+                return i * 15;
+            })
+            .style("fill",'darkblue')
+            .attr("class","leg_box");
+
+            //ENTER
+            leg.enter().append("rect")
+            .attr("x", width+20)
+            .attr("width", 10)
+            .attr("height", 10)
+            .attr("y", function (d, i) {
+                return (i * 15);
+            })
+            .style("fill",'darkblue')
+            .attr("class","leg_box");
+
+            //EXIT
+            leg.exit()
+            .remove()
+            
+
+            // Legend text
+            var leg_text = svg.select('g.legend').selectAll('text.legend').data(dataset);
+
+            //UPDATE
+            leg_text.transition()
+            .duration(100)
+            .delay(delay)                
+            .attr("x", width+35)
+            .attr("y", function (d, i) {
+                return (i * 15)+8;
+            })
+            .style('class','legend')
+            .attr('class','legend')
+            .text(function (d) {
+                return d['Country_Code']+' - '+d['Country'];
+            });
+
+            leg_text.enter()
+                .append("text")
+                .attr("x", width +35)
+                .attr("y", function (d, i) {
+                    return (i * 15)+8;
+                })
+                .style('class','legend')
+                .attr('class','legend')
+                .text(function (d) {
+                    return d['Country_Code']+' - '+d['Country'];
+                });
+
+            leg_text.exit()
+            .remove()
+
+            var yAxis = d3.axisLeft(yScale);
+            d3.selectAll("g.y.axis")
+            .transition()
+            .call(yAxis);
+
+        };
+
+        function changeY() {
+            var ymax = d3.max(dataset, function (d) { return d["Electricity_Consumption"]; });
+            yScale.domain([0, ymax]).range([height, 0])
+            var yAxis = d3.axisLeft(yScale);
+            d3.selectAll("g.y.axis")
+                .transition()
+                .call(yAxis);
+        }
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4"
+        crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>
