@@ -1,6 +1,6 @@
-# INF 554 Assignment 9
+# Create choropleth map using D3
 
-In this assignment I create a chloropleth map and proportional symbol map to represent the % rural population of 10 countries in the world.  The data is from [World Bank](https://data.worldbank.org/indicator/SP.RUR.TOTL.ZS).
+This code creates a choropleth map and proportional symbol map to represent the % rural population of 10 countries in the world.  The data is from [World Bank](https://data.worldbank.org/indicator/SP.RUR.TOTL.ZS).
 
 
 ## Development Setup
