@@ -2,6 +2,10 @@
 
 This code creates a choropleth map and proportional symbol map to represent the % rural population of 10 countries in the world.  The data is from [World Bank](https://data.worldbank.org/indicator/SP.RUR.TOTL.ZS).
 
+## Screenshot
+![map1](https://github.com/TejalPatted/Information-Visualization/blob/master/choropleth%20map%20using%20D3/Proportional%20symbol%20map.JPG)
+
+![map2](https://github.com/TejalPatted/Information-Visualization/blob/master/choropleth%20map%20using%20D3/Choropleth%20map.JPG)
 
 ## Development Setup
 * The D3.js was accessed by accessing the library files from the repository at [D3 repo](http://d3js.org/d3.v4.min.js). 
