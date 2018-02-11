@@ -1,0 +1,295 @@
+---
+title: "R Notebook to plot LA transponder data"
+output: html_notebook
+---
+
+The notebook analysis transponder data from flights near Santa Monica airport before and after Columbus day to analyze the effect of NextGen program by FAA on flight traffic.
+
+The data was preprocessed using the DataWrangling.R file. The resulting .csv files are used for the analysis demonstrated below.
+The Data Wrangling process -
+1. Load the zip files for the four days - As file for each day contains data from 4pm of previous day to 4pm of current day, we had to use files from 2 days to get the data for 12 am to 12 am.
+2. We filter data to remove fields with static or unknown data such as V3, V6, V7 and V9 which do not add value to the analysis
+3. Flight column data cleaning - Clean the flight name column to remove erroneous data; remove code starting with a60 and no flight name as these are from private planes
+4. Add track variable to identify separate flights in the same day; combine flight name, code and track number to form unique id for each flight in a given time period
+5. Compute distance from SMO airport coordinates using lat long values in each row and create distance column to store the values
+6. Filter flights that fly within 3000 to 11000 ft/meter(unit unknown) altitude 
+7. Separate the preprocessed data into daytime and nightime data. The data record with time stamp between 6:30am(06:30:00) to 12:00am (00:00:00) is considered as daytime. The timestamps from 12am (00:00:00) to 6:30am (06:30:00) as the nightime.
+8. The daytme data is downloaded as .csv file with date_day filename and nightime data is downloaded as ,csv file with date_night file name
+
+```{r}
+library("ggplot2")
+library("dplyr")
+library("plotly")
+library("dplyr")
+library("lubridate")
+library("geosphere")
+library('ggmap')
+
+```
+
+Load the 4 .csv files into tables -
+day1_day, day1_night, day2_day , day2_night
+```{r}
+day1_day <- read.csv("RTL150406_day.csv",header=TRUE)
+day1_N <- read.csv("RTL150406_night.csv",header=TRUE)
+day2_day <- read.csv("RTL151116_day.csv",header=TRUE)
+day2_N <- read.csv("RTL151116_night.csv",header=TRUE)
+
+```
+
+
+Daytime flight pattern analysis for April 06,2015 and Nov 16, 2015
+
+
+Add new column for time in hour format
+```{r}
+day1_day$time_hour<- hour(day1_day[,1])
+day2_day$time_hour<- hour(day2_day[,1])
+```
+
+
+Filter records based on Flight id and time to get count of unique flights in every hour
+Combine the rows of both dataframes and use month column to distinguish the 2 dataframe groups
+```{r}
+d_3 <- unique(day1_day[c("time_hour", "id")])
+d_3$Month = "Day_in_Apr"
+
+d_4 <- unique(day2_day[c("time_hour", "id")])
+d_4$Month = "Day_in_Nov"
+
+fin_d2 <- dplyr::bind_rows(d_3, d_4)
+```
+
+```{r}
+nrow(d_3)
+
+```
+```{r}
+nrow(d_4)
+```
+There are 156 unique flights in November during day time and 101 unique flights in April
+
+```{r}
+ggplot(fin_d2,aes(Month))+geom_bar(aes(fill=Month))+coord_flip()+ggtitle("Total flights in each day during daytime")
+
+```
+The above plot shows the overall trend in flight traffic during daytime in April and November. It is evident that the number of flights almost doubled during Novemeber in the daytime
+
+The below visulaization plots the variation in number of flights during each hour of the day
+```{r}
+g2 <- ggplot(fin_d2,aes(time_hour,group=Month))+geom_bar(aes(fill=Month) ,position="dodge")+scale_x_continuous(name="Time",breaks=seq(6,24,1))+
+scale_y_continuous(name="No.of.flights",breaks=seq(0,15,1))+ggtitle("Number of flights vs time")
+ggplotly(g2)
+```
+
+The above plot shows that the number of flights during November were higher than in March during the daytime. However, there is exceptions at hours 14:00, 16:00 and 22:00 where we observe the number of flights in March is more than in November
+
+Filter data to get flights closest to SMO coordinates
+Repeat the filtering for Apr and Nov data
+```{r}
+d_1 <- day1_day %>% 
+  group_by(flight, code, track,id) %>% 
+slice(which.min(dist))%>%group_by(time_hour) %>%
+  summarise(n_distinct(id))
+d_1$Month = "Day_in_Apr"
+```
+
+
+```{r}
+d_2 <- day2_day %>% 
+  group_by(flight, code, track,id) %>% 
+slice(which.min(dist))%>%group_by(time_hour) %>%
+  summarise(n_distinct(id))
+d_2$Month = "Day_in_Nov"
+fin_d1 <- dplyr::bind_rows(d_1, d_2)
+colnames(fin_d1) <-c("Time","flights","Month")
+```
+
+Combine the 2 data frames and 
+Plot line chart to visualize number of flights at different hours of the day
+```{r}
+#ggplot(d_1,aes(Time,Number_of_flights, group=supp))+ geom_point() + geom_line()
+g3 <- ggplot(fin_d1,aes(Time,flights,group=Month))+geom_line(aes(color=Month))+geom_point()+
+  scale_linetype_manual(values=c("twodash", "dotted"))
+ggplotly(g3)
+  
+
+```
+The above plot shows that the number of flights during November were higher than in March during the daytime. However, there is exceptions at hours 14:00, 16:00 and 22:00 where we observe the number of flights in March is more than in November
+
+Find the flight's closest location to the SMO airport and record the altitude at that location
+```{r}
+d_5 <- day1_day %>% 
+  group_by(id) %>% 
+slice(which.min(dist))
+
+d_6 <- day2_day %>% 
+  group_by(id) %>% 
+slice(which.min(dist))
+```
+
+Create a scatter plot of altitude against time for each flight. The below 2 plot shows the variation in altitude of the flight when it is nearest to the SMO airport vs time. Each point in the plot represents the altitude of a flight at given time period. The red line indicates the mean of the altitudes of flights at each hour of the day. 
+
+As time is taken in hours and data is present at more granuar level of seconds or minutes, we only considered the altitude of the flight within a given hour when it was closest to SMO airport.
+```{r}
+
+g4 <- ggplot(d_5, aes(x=time_hour, y=alt)) +
+    geom_point(shape=1) +    # Use hollow circles
+  stat_summary(aes(y = alt,group=1), fun.y=mean, colour="red", geom="line",group=1)+
+    scale_x_continuous(name="Time",breaks=seq(6,24,1)) + scale_y_continuous(name="Altitude")+ ggtitle("Variation of altitude over time in April")
+ggplotly(g4)
+```
+
+
+```{r}
+g5 <- ggplot(d_6, aes(x=time_hour, y=alt)) +
+    geom_point(shape=1) +   # Use hollow circles
+    stat_summary(aes(y = alt,group=1), fun.y=mean, colour="red", geom="line",group=1)+
+    scale_x_continuous(name="Time",breaks=seq(6,24,1)) + scale_y_continuous(name="Altitude")+ggtitle("Variation of altitude over time in Nov")
+ggplotly(g5)
+```
+The above 2 plots show that the average altitudes of flights over time vary more in April than in November. This trend might be because there are more flights in Novermebr which reduce the deviation in the altitudes over time. i.e. more data keeps the mean constant
+
+Coordinates of Santa Monica Airport
+```{r}
+SMO <- data.frame(label = 'SMO', lon=-118.456667, lat=34.010167)
+smo <- c(SMO$lon, SMO$lat)
+```
+
+The below map plot shows the altitude variation of flights from SMO point
+
+```{r}
+map.google <- get_map(smo, zoom = 12)
+p <- ggmap(map.google)
+g6 <- p + geom_point(data = SMO, aes(x=lon, y=lat), color="red", size=5, alpha=.5) +
+geom_path(data = day1_day, aes(x = lon, y = lat, color=alt), alpha=.5) +
+scale_colour_gradient(limits=c(3000, 10000), low="red", high="blue") + ggtitle("April flight altitude variation")
+g6
+ggplotly(g6)
+```
+
+```{r}
+map.google <- get_map(smo, zoom = 12)
+p <- ggmap(map.google)
+g7 <- p + geom_point(data = SMO, aes(x=lon, y=lat), color="red", size=5, alpha=.5) +
+geom_path(data = day2_day, aes(x = lon, y = lat, color=alt), alpha=.5) +
+scale_colour_gradient(limits=c(3000, 10000), low="red", high="blue") + ggtitle("November flight altitude variation")
+g7
+ggplotly(g7)
+```
+The above 2 plots help us compare the altitude of flights in November and April flying across Santa Monica airport. Observing that there are more blue lines in plot2 (on the left side of SMO) than in plot 1, we can deduce that the flights in Novemeber are flying at a higher altitude than in April. The ggplotly output provides a more clear visulization regarding the altitude variation.
+Also the large increase in number of lines in plot 2 indicates an increase in number of flights in November
+
+Analysis ---
+From the visualizations created above, I can conclude that there was a significant effct of FAA's NextGen program on daytime flight traffic before and after Columbus day on Mondays(as the date chosen correponds to monday). The flights are at higher altitudes in Novemeber than in April. This might be because, to accomodate more flights in Nov, flights were alloted higher altitudes than in Apr when there were fewer flights. In Nov, the peak flight traffic is between 9 am to 1 pm and in Apr it is around 11am to 2pm.
+
+Nighttime flight pattern analysis for April 06,2015 and Nov 16, 2015
+
+Add new column for time in hour format
+```{r}
+day1_N$time_hour<- hour(day1_N[,1])
+day2_N$time_hour<- hour(day2_N[,1])
+
+```
+
+Filter records based on Flight id and time to get count of unique flights in every hour
+Combine the rows of both dataframes and use month column to distinguish the 2 dataframe groups
+```{r}
+N_1 <- unique(day1_N[c("time_hour", "id")])
+N_1$Month = "Day_in_Apr"
+
+N_2 <- unique(day2_N[c("time_hour", "id")])
+N_2$Month = "Day_in_Nov"
+
+fin_n1 <- dplyr::bind_rows(N_1, N_2)
+```
+
+```{r}
+nrow(N_1)
+```
+```{r}
+nrow(N_2)
+```
+
+There are 15 flights in April and 13 in November during night time
+
+```{r}
+ggplot(fin_n1,aes(Month))+geom_bar(aes(fill=Month))+coord_flip()+ggtitle("Total flights in each day during nightime")
+
+```
+The above plot shows the overall trend in flight traffic during nighttime in April and November. It is evident that there is not much difference in flight traffic during the nightime from April to November. 
+
+
+The below visulaization plots the variation in number of flights during each hour of the day
+```{r}
+g8 <- ggplot(fin_n1,aes(time_hour,group=Month))+geom_bar(aes(fill=Month) ,position="dodge")+scale_x_continuous(name="Time",breaks=seq(0,6,1))+
+scale_y_continuous(name="No.of.flights",breaks=seq(0,15,1))+ggtitle("Number of flights vs time")
+ggplotly(g8)
+```
+
+As we saw in previous plot of trend in number of flights that there is not much variation in number of flights druing April and Nov, the Number of flights vs time plot does not reveal any significant insights. There are few hours of day where April has higher number of flights than November, however the variation is not significant.  
+
+Find the flight's closest location to the SMO airport and record the altitude at that location
+```{r}
+N_3 <- day1_N %>% 
+  group_by(id) %>% 
+slice(which.min(dist))
+
+N_4 <- day2_N %>% 
+  group_by(id) %>% 
+slice(which.min(dist))
+```
+
+Create a scatter plot of altitude against time for each flight. The below 2 plot shows the variation in altitude of the flight when it is nearest to the SMO airport vs time. Each point in the plot represents the altitude of a flight at given time period. The red line indicates the mean of the altitudes of flights at each hour of the night. 
+
+As time is taken in hours and data is present at more granuar level of seconds or minutes, we only considered the altitude of the flight within a given hour when it was closest to SMO airport.
+```{r}
+
+g9 <- ggplot(N_3, aes(x=time_hour, y=alt)) +
+    geom_point(shape=1) +    # Use hollow circles
+  stat_summary(aes(y = alt,group=1), fun.y=mean, colour="red", geom="line",group=1)+
+    scale_x_continuous(name="Time",breaks=seq(0,6,1)) + scale_y_continuous(name="Altitude",breaks=seq(6000,9000,500))+ ggtitle("Variation of altitude over time in April")
+ggplotly(g9)
+```
+
+```{r}
+g10 <- ggplot(N_4, aes(x=time_hour, y=alt)) +
+    geom_point(shape=1) +   # Use hollow circles
+    stat_summary(aes(y = alt,group=1), fun.y=mean, colour="red", geom="line",group=1)+
+    scale_x_continuous(name="Time",breaks=seq(0,6,1)) + scale_y_continuous(name="Altitude")+ggtitle("Variation of altitude over time in Nov")
+ggplotly(g10)
+```
+
+
+The major variation seen in altitude between 2 plots is at 5am. Most of the flights are at lower altitude at 5am in April than in Nov. This might be because there were more landings in April around 5am due to which the altitude is lesser when compared to flights that are passing by SMO in Nov at 5am
+
+The below map plot shows the altitude variation of flights from SMO point
+
+```{r}
+map.google <- get_map(smo, zoom = 12)
+p <- ggmap(map.google)
+g11 <- p + geom_point(data = SMO, aes(x=lon, y=lat), color="red", size=5, alpha=.5) +
+geom_path(data = day1_N, aes(x = lon, y = lat, color=alt), alpha=.5) +
+scale_colour_gradient(limits=c(3000, 10000), low="red", high="blue") + ggtitle("April flight altitude variation")
+g11
+ggplotly(g11)
+```
+
+
+The below map plot shows the altitude variation of flights from SMO point
+
+```{r}
+map.google <- get_map(smo, zoom = 12)
+p <- ggmap(map.google)
+g12 <- p + geom_point(data = SMO, aes(x=lon, y=lat), color="red", size=5, alpha=.5) +
+geom_path(data = day2_N, aes(x = lon, y = lat, color=alt), alpha=.5) +
+scale_colour_gradient(limits=c(3000, 10000), low="red", high="blue") + ggtitle("Nov flight altitude variation")
+g12
+ggplotly(g12)
+```
+
+From the above 2 plots, we can identify the path of the flights and the altitude variation. In April data it is seen that few flights do not fly over SMO airport. However, all flights in Nov dataset are for the flights flying over SMO airport. There is no significant information regarding altitude variation among Apr and Nov dataset for nightime. 
+
+Analysis ---
+From the nightime data analysis, I conclude that there was no effect of FAA's NextGen program on the nightime flight pattern before and er Columbus day on Mondays (as the date chosen correponds to monday). As the there was scarse data for nightime flights, I could not identify any insights in terms of flight altitude and paths as seen in daytime analysis
+ 
